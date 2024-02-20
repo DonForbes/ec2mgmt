@@ -22,12 +22,17 @@ repositories {
 }
 
 dependencies {
-	  implementation 'org.springframework.boot:spring-boot-starter-web'
-  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation platform('software.amazon.awssdk:bom:2.24.3')
+	implementation 'software.amazon.awssdk:aws-core'
+	implementation 'software.amazon.awssdk:sdk-core'
+	implementation 'software.amazon.awssdk:ec2'
+    implementation 'software.amazon.awssdk:ssm'
 }
 
 tasks.named('test') {

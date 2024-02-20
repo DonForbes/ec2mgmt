@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: samples-header"> 
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title" th:text="'AWS Durable Workflow Example: ' + ${sample}"></h4>
+            <h6>This page will allow you to request an VM based on the below information.</h6>
+            <br>
+            <style>
+                table, th, td {
+                  border: 1px solid black;
+                  border-collapse: collapse;
+                  width: 90%;
+                }
+            </style>
+            <table>
+                <hr><th style="width:30%;"><b>Attribute</b></th><th><b>value</b></th></hr>
+                <tr><td>keyName</td><td th:text=${ec2Config.keyName}></td></tr>
+                <tr><td>fileName</td><td th:text=${ec2Config.fileName}></td></tr>
+                <tr><td>groupName</td><td th:text=${ec2Config.groupName}></td></tr>
+                <tr><td>groupDesc</td><td th:text=${ec2Config.groupDesc}></td></tr>
+                <tr><td>vpcId</td><td th:text=${ec2Config.vpcId}></td></tr>
+                <tr><td>myIpAddress</td><td th:text=${ec2Config.myIpAddress}></td></tr>
+                <tr><td>region</td><td th:text=${ec2Config.region}></td></tr>
+                <tr><td>ami</td><td th:text=${ec2Config.ami}></td></tr>
+                <tr><td>instanceType</td><td th:text=${ec2Config.instanceType}></td></tr>
+            </table>
+            <br>
+            <div class="form-group">
+                <br/><br/>
+                <form action="/ec2-createvm", id="ec2createvm">
+                    <p><input type="submit" value="Create VM" formaction="/ec2-createvm/" class="btn btn-primary" />
+                </form>
+                <form action="/ec2-deletevm", id="ec2deletevm">
+                       <input type="submit" value="Cleanup VM" formaction="/ec2-deletevm/" class="btn btn-secondary" />
+                </form>
+            </div>
+        </div>
+        <div style="width: 18rem;">
+            <div>
+                <h5 class="card-title">Workflow result:</h5>
+                <div id="result"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+$("#ec2createvm").submit(function( event ) {
+    event.preventDefault();
+
+    var $form = $( this );
+    var createvm = $form.find( "input[name='createvm']" ).val();
+    var url = $form.attr( "action" );
+    console.log("url is " + url);
+    console.log(createvm);
+    $.ajax({
+        'url': url,
+        'method':'POST',
+        'dataType': 'json',
+        'contentType': 'application/json',
+        'data':JSON.stringify({
+            "createvm": createvm
+        }),
+        success: function(response) {
+            $( "#result" ).empty().append( response );
+        }
+    });
+});
+$("#ec2deletevm").submit(function( event ) {
+    event.preventDefault();
+
+    var $form = $( this );
+    var createvm = $form.find( "input[name='createvm']" ).val();
+    var url = $form.attr( "action" );
+    console.log("url is " + url);
+    console.log(createvm);
+    $.ajax({
+        'url': url,
+        'method':'POST',
+        'dataType': 'json',
+        'contentType': 'application/json',
+        'data':JSON.stringify({
+            "createvm": createvm
+        }),
+        success: function(response) {
+            $( "#result" ).empty().append( response );
+        }
+    });
+});
+</script>
+<footer th:replace="fragments :: samples-footer"></footer>
+</body>
+</html>
