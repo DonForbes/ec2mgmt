@@ -13,11 +13,13 @@
                 table, th, td {
                   border: 1px solid black;
                   border-collapse: collapse;
-                  width: 90%;
+                }
+                th {
+                    width:90%;
                 }
             </style>
             <table>
-                <hr><th style="width:30%;"><b>Attribute</b></th><th><b>value</b></th></hr>
+                <hr><th style="width: 30%;"><b>Attribute</b></th><th style="width: 70%;"><b>value</b></th></hr>
                 <tr><td>keyName</td><td th:text=${ec2Config.keyName}></td></tr>
                 <tr><td>fileName</td><td th:text=${ec2Config.fileName}></td></tr>
                 <tr><td>groupName</td><td th:text=${ec2Config.groupName}></td></tr>
@@ -27,13 +29,15 @@
                 <tr><td>region</td><td th:text=${ec2Config.region}></td></tr>
                 <tr><td>ami</td><td th:text=${ec2Config.ami}></td></tr>
                 <tr><td>instanceType</td><td th:text=${ec2Config.instanceType}></td></tr>
+                <tr><td>Temporal Key:value</td><td><b th:text=${ec2Config.temporalTagKey}></b>:<i th:text=${ec2Config.temporalTagValue}></i></td></tr>
             </table>
             <br>
             <div class="form-group">
                 <br/><br/>
                 <form action="/ec2-createvm", id="ec2createvm">
-                    <p><input type="submit" value="Create VM" formaction="/ec2-createvm/" class="btn btn-primary" />
+                    <input type="submit" value="Create VM" formaction="/ec2-createvm/" class="btn btn-primary" />
                 </form>
+                <br>
                 <form action="/ec2-deletevm", id="ec2deletevm">
                        <input type="submit" value="Cleanup VM" formaction="/ec2-deletevm/" class="btn btn-secondary" />
                 </form>

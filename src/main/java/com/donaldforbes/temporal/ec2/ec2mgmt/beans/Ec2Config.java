@@ -23,4 +23,6 @@ public class Ec2Config {
     private String region;
     private String ami;
     private String instanceType;
+    private String temporalTagKey;
+    private String temporalTagValue;
 }

@@ -26,15 +26,15 @@ public class ec2MgmtController {
         model.addAttribute("sample", "Example Hello");
         return "hello";
     }
-    
+
     @PostMapping(value="/ec2-createvm")
     public ResponseEntity<String> ec2PostCreate(@RequestBody String body) {
         System.out.println("Creating the VM.");
         System.out.println(body);
 
         Ec2Service myEc2Service = new Ec2Service(ec2Configuration);
-        //myEc2Service.createVM();
-        return new ResponseEntity<>("\"" + "Don - CreateVM" + "\"", HttpStatus.OK);
+        String instanceCreated = myEc2Service.createVM();
+        return new ResponseEntity<>("\"" + "InstanceID:" + instanceCreated  + "\"", HttpStatus.OK);
     }
     @PostMapping(value="/ec2-deletevm")
     public ResponseEntity<String> ec2PostDelete(@RequestBody String body) {
@@ -42,13 +42,13 @@ public class ec2MgmtController {
         System.out.println(body);
 
         Ec2Service myEc2Service = new Ec2Service(ec2Configuration);
-        //myEc2Service.createVM();
+        myEc2Service.deleteVM();
         return new ResponseEntity<>("\"" + "Don - delete VM" + "\"", HttpStatus.OK);
     }
 
     @GetMapping("ec2")
     public String ec2(Model model){
-        model.addAttribute("sample", "VM  Instance creation");
+        model.addAttribute("sample", "VM  Instance Management");
        // Ec2Config myConfig = new Ec2Config();
         model.addAttribute("ec2Config", ec2Configuration);
         return "ec2";
