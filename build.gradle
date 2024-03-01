@@ -33,6 +33,15 @@ dependencies {
 	implementation 'software.amazon.awssdk:sdk-core'
 	implementation 'software.amazon.awssdk:ec2'
     implementation 'software.amazon.awssdk:ssm'
+    implementation "io.temporal:temporal-spring-boot-starter-alpha:1.22.3"
+
+}
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
 }
 
 tasks.named('test') {

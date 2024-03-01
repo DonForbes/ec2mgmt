@@ -1,0 +1,33 @@
+ec2-config:
+    keyName: drf-temporal-KeyName
+    fileName: /tmp/drf-temporal-key
+    groupName: drf-temporal-security-group-name
+    groupDesc: "drf-temporal Security group to access the VM we are looking to create"
+    vpcId: vpc-5404903c
+    myIpAddress: 82.1.132.142
+    region: eu-west-2
+    ami: ami-027d95b1c717e8c5d
+    instanceType: t3.micro
+    temporalTagKey: temporal
+    temporalTagValue: demo
+
+spring: 
+  application:
+    name: temporal-ec2-demo
+  temporal:
+    namespace: default
+    connection:
+      target: 127.0.0.1:7233
+    workers:
+      - task-queue: Ec2DemoTaskQueue
+        capacity:
+          max-concurrent-workflow-task-pollers: 6
+          max-concurrent-activity-task-pollers: 6
+        rate-limits:
+          max-worker-activities-per-second: 0
+          max-task-queue-activities-per-second: 0
+    workflow-cache:
+      max-instances: 10
+      max-threads: 10
+    workersAutoDiscovery:
+      packages: com.donaldforbes.temporal.ec2.ec2mgmt

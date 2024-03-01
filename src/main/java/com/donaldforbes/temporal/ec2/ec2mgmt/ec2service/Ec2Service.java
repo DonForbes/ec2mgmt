@@ -1,6 +1,5 @@
 package com.donaldforbes.temporal.ec2.ec2mgmt.ec2service;
 
-import com.donaldforbes.temporal.ec2.ec2mgmt.beans.Ec2Config;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest;
@@ -54,13 +53,26 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMDeleteOutput;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
+
+import io.temporal.activity.Activity;
+import io.temporal.spring.boot.WorkflowImpl;
+
 import java.util.Collection;
 
-public class Ec2Service {
+
+public class Ec2Service  { 
     private Ec2Client ec2;
     private SsmClient ssmClient;
     private Ec2Config ec2Configuration;
 
+    public Ec2Client getEc2() {
+        return this.ec2;
+    }
     public Ec2Service(Ec2Config pEc2Configuration) {
         ec2Configuration = pEc2Configuration;
         Region region = Region.of(ec2Configuration.getRegion());
@@ -74,29 +86,33 @@ public class Ec2Service {
                 .build();
     }
 
-    public String createVM() {
-        System.out.println("1. Create an RSA key pair and save the private key material as a .pem file.");
-        createKeyPair(ec2, ec2Configuration.getKeyName(), ec2Configuration.getFileName());
-        System.out.println("Creating a security group based on values provided.");
-        String groupId = createSecurityGroup(ec2,
-                ec2Configuration.getGroupName(),
-                ec2Configuration.getGroupDesc(),
-                ec2Configuration.getVpcId(),
-                ec2Configuration.getMyIpAddress());
+    public Ec2Service(Ec2Input vmInput) {
+        
+       this.ec2Configuration = new Ec2Config(); 
+       this.ec2Configuration.setAmi(vmInput.ami);
+       this.ec2Configuration.setFileName(vmInput.fileName);
+       this.ec2Configuration.setGroupDesc(vmInput.groupDesc);
+       this.ec2Configuration.setGroupName(vmInput.groupName);
+       this.ec2Configuration.setInstanceType(vmInput.instanceType);
+       this.ec2Configuration.setKeyName(vmInput.keyName);
+       this.ec2Configuration.setMyIpAddress(vmInput.myIpAddress);
+       this.ec2Configuration.setRegion(vmInput.region);
+       this.ec2Configuration.setTemporalTagKey(vmInput.temporalTagKey);
+       this.ec2Configuration.setTemporalTagValue(vmInput.temporalTagValue);
+       this.ec2Configuration.setVpcId(vmInput.vpcId);
+       Region region = Region.of(ec2Configuration.getRegion());
 
-        System.out.println("Created security group [" + groupId + "]");
-        System.out.println("Creating an instance.");
-        String newInstanceId = runInstance(ec2,
-                ec2Configuration.getInstanceType(),
-                ec2Configuration.getKeyName(),
-                ec2Configuration.getGroupName(),
-                ec2Configuration.getAmi());
-        System.out.println("Created Instance with id [" + newInstanceId + "]");
+       ec2 = Ec2Client.builder()
+               .region(region)
+               .build();
 
-        return newInstanceId;
+       ssmClient = SsmClient.builder()
+               .region(region)
+               .build();
     }
 
-    public void deleteVM() {
+    public Ec2VMDeleteOutput deleteVM(Ec2Config vmConfig) {
+        Ec2VMDeleteOutput deleteVMOutput = new Ec2VMDeleteOutput();
         System.out.println("Deleting all VMs with Temporal Demo tags and associated resources.");
         List<String> instanceIds = this.getDemoInstanceIds(ec2);
         for (String instanceId : instanceIds) {
@@ -111,10 +127,11 @@ public class Ec2Service {
         }
 
         this.deleteKeys(ec2, ec2Configuration.getKeyName());
-
+        deleteVMOutput.setMessage("VM and associated objects deleted.");
+        return deleteVMOutput;
     }
 
-    private List<String> getDemoInstanceIds(Ec2Client ec2)
+    public List<String> getDemoInstanceIds(Ec2Client ec2)
     {
         List<String> instanceIdList = new ArrayList<String>();
 
@@ -152,7 +169,7 @@ public class Ec2Service {
         return instanceIdList;
     }
 
-    private void terminateEC2(Ec2Client ec2, String instanceId) {
+    public void terminateEC2(Ec2Client ec2, String instanceId) {
         try {
             Ec2Waiter ec2Waiter = Ec2Waiter.builder()
                     .overrideConfiguration(b -> b.maxAttempts(100))
@@ -179,7 +196,7 @@ public class Ec2Service {
         }
     }
 
-    private String runInstance(Ec2Client ec2, String instanceType, String keyName, String groupName,
+    public String runInstance(Ec2Client ec2, String instanceType, String keyName, String groupName,
             String amiId) {
         try {
             Collection myTags = new ArrayList<Tag>();
@@ -218,7 +235,7 @@ public class Ec2Service {
     }
 
 
-    private List<String> getSecurityGroupsByGroupName(Ec2Client ec2, String groupName)
+    public List<String> getSecurityGroupsByGroupName(Ec2Client ec2, String groupName)
     {
         List<String> groupIds = new ArrayList<String>();
         try {
@@ -247,7 +264,7 @@ public class Ec2Service {
         return groupIds;
 
     } //End getSecurityGroupsByGroupName
-    private void deleteSecurityGroup(Ec2Client ec2, String groupId)
+    public void deleteSecurityGroup(Ec2Client ec2, String groupId)
     {
         try {
             DeleteSecurityGroupRequest request = DeleteSecurityGroupRequest.builder()
@@ -265,7 +282,7 @@ public class Ec2Service {
 
     } //End deleteSecurityGroup
 
-    private String createSecurityGroup(Ec2Client ec2, String groupName, String groupDesc, String vpcId,
+    public String createSecurityGroup(Ec2Client ec2, String groupName, String groupDesc, String vpcId,
             String myIpAddress) {
         try {
             CreateSecurityGroupRequest createRequest = CreateSecurityGroupRequest.builder()
@@ -303,14 +320,16 @@ public class Ec2Service {
             return resp.groupId();
 
         } catch (Ec2Exception e) {
-            System.out.println("Exception occurred creating the security group.");
+            System.out.println("Exception occurred creating the security group -" + e.getMessage());
             System.err.println(e.awsErrorDetails().errorMessage());
-
+            System.out.println("The error code returned was :" + e.awsErrorDetails().errorCode());
+            if (e.awsErrorDetails().errorCode().equalsIgnoreCase("InvalidGroup.Duplicate"))
+                return groupName;
         }
         return "";
     }
 
-    private void createKeyPair(Ec2Client ec2, String keyName, String fileName) {
+    public String createKeyPair(Ec2Client ec2, String keyName, String fileName) {
         try {
             CreateKeyPairRequest request = CreateKeyPairRequest.builder()
                     .keyName(keyName)
@@ -323,12 +342,19 @@ public class Ec2Service {
             writer.close();
             System.out.println("Successfully created key pair named " + keyName);
 
+            return keyName + " - " + fileName;
+
         } catch (Ec2Exception | IOException e) {
             System.err.println(e.getMessage());
+            System.out.println("ERROR: Failed to create keypair called - " + keyName);
+            if (e.getMessage().startsWith("The keypair already exists"))
+                return keyName + " - Already Exists. Check you have the secret key.";
+            else
+                throw Activity.wrap(e);
         }
-    }
+    } //End createKeyPair
 
-    private void deleteKeys(Ec2Client ec2, String keyPair) {
+    public void deleteKeys(Ec2Client ec2, String keyPair) {
         try {
             DeleteKeyPairRequest request = DeleteKeyPairRequest.builder()
                     .keyName(keyPair)

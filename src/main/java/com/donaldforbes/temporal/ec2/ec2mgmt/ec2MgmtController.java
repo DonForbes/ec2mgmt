@@ -7,20 +7,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
-import com.donaldforbes.temporal.ec2.ec2mgmt.beans.Ec2Config;
+import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.CreateVMService;
+import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.DeleteVMService;
 import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.Ec2Service;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
 
+import io.temporal.client.WorkflowClient;
+import io.temporal.client.WorkflowOptions;
 import software.amazon.awssdk.regions.Region;
 
 
 @Controller
 public class ec2MgmtController {
-    @Autowired
+    @Autowired 
     private Ec2Config ec2Configuration;
-
+    @Autowired WorkflowClient client;
+    
     @GetMapping("hello")
     public String hello(Model model){
         model.addAttribute("sample", "Example Hello");
@@ -32,24 +37,42 @@ public class ec2MgmtController {
         System.out.println("Creating the VM.");
         System.out.println(body);
 
-        Ec2Service myEc2Service = new Ec2Service(ec2Configuration);
-        String instanceCreated = myEc2Service.createVM();
-        return new ResponseEntity<>("\"" + "InstanceID:" + instanceCreated  + "\"", HttpStatus.OK);
+        CreateVMService workflow =
+        client.newWorkflowStub(
+            CreateVMService.class,
+            WorkflowOptions.newBuilder()
+                .setTaskQueue("Ec2DemoTaskQueue")
+                .setWorkflowId("CreateVMWorkflow")
+                .build());
+                
+        System.out.println("**** config value -" + ec2Configuration.getGroupName());
+        Ec2Input vmInput = new Ec2Input(ec2Configuration);
+        Ec2VMOutput vmDetails = workflow.createVM(vmInput);
+
+        return new ResponseEntity<>("\"Created VM - " + vmDetails.toString() + "\"", HttpStatus.OK);
     }
     @PostMapping(value="/ec2-deletevm")
     public ResponseEntity<String> ec2PostDelete(@RequestBody String body) {
         System.out.println("Deletiung the VM.");
         System.out.println(body);
 
-        Ec2Service myEc2Service = new Ec2Service(ec2Configuration);
-        myEc2Service.deleteVM();
-        return new ResponseEntity<>("\"" + "Don - delete VM" + "\"", HttpStatus.OK);
+        DeleteVMService workflow =
+            client.newWorkflowStub(
+                DeleteVMService.class,
+                WorkflowOptions.newBuilder()
+                    .setTaskQueue("Ec2DemoTaskQueue")
+                    .setWorkflowId("DeleteVMWorkflow")
+                    .build());
+
+        Ec2Input vmInput = new Ec2Input(ec2Configuration);
+        Ec2VMOutput vmDetails = workflow.deleteAll(vmInput);
+
+        return new ResponseEntity<>("\"Deleted Objects - " + vmDetails.toString() + "\"", HttpStatus.OK);
     }
 
     @GetMapping("ec2")
     public String ec2(Model model){
         model.addAttribute("sample", "VM  Instance Management");
-       // Ec2Config myConfig = new Ec2Config();
         model.addAttribute("ec2Config", ec2Configuration);
         return "ec2";
     }
