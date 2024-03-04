@@ -51,12 +51,12 @@ public class VMActivitiesImpl implements VMActivities {
     public Collection<String> deleteVMs(Ec2Input vmDetail) {
         Ec2Service ec2Service = this.getEc2Service(vmDetail);
 
-        Collection<String> vmIdentifiers = new ArrayList<String>();
+        Collection<String> vmIdentifiers = new ArrayList<>();
        logger.debug("Deleting all VMs with Temporal Demo tags and associated resources.");
         
         List<Ec2Instance> instances = ec2Service.getDemoInstanceIds(ec2Service.getEc2());
         for (Ec2Instance instance : instances) {
-            logger.debug("Deleting instance ",instance.getInstanceId());
+            logger.debug("Deleting instance [{}]",instance.getInstanceId());
             ec2Service.terminateEC2(ec2Service.getEc2(), instance.getInstanceId());
             vmIdentifiers.add(instance.toString());
         }
@@ -68,7 +68,7 @@ public class VMActivitiesImpl implements VMActivities {
     public Collection<String> deleteSecurityGroups(Ec2Input vmDetail) {
         Ec2Service ec2Service = this.getEc2Service(vmDetail); 
 
-        Collection<String> deletedGroups = new ArrayList<String>();
+        Collection<String> deletedGroups = new ArrayList<>();
         Collection<String> groupIds = ec2Service.getSecurityGroupsByGroupName(ec2Service.getEc2(), vmDetail.groupName);
         for (String groupID : groupIds)
         {
@@ -83,7 +83,7 @@ public class VMActivitiesImpl implements VMActivities {
     public Collection<String> deleteKeyPairs(Ec2Input vmDetail) {
         Ec2Service ec2Service = this.getEc2Service(vmDetail);
 
-        Collection<String> keyPairs = new ArrayList<String>();
+        Collection<String> keyPairs = new ArrayList<>();
         ec2Service.deleteKeys(ec2Service.getEc2(), vmDetail.keyName);
         keyPairs.add(vmDetail.keyName);
         

@@ -7,47 +7,36 @@ import software.amazon.awssdk.services.ec2.model.CreateKeyPairResponse;
 import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.core.waiters.WaiterResponse;
-import software.amazon.awssdk.services.ec2.model.AllocateAddressRequest;
-import software.amazon.awssdk.services.ec2.model.AllocateAddressResponse;
-import software.amazon.awssdk.services.ec2.model.AssociateAddressRequest;
-import software.amazon.awssdk.services.ec2.model.AssociateAddressResponse;
+
 import software.amazon.awssdk.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import software.amazon.awssdk.services.ec2.model.CreateSecurityGroupRequest;
 import software.amazon.awssdk.services.ec2.model.CreateSecurityGroupResponse;
 import software.amazon.awssdk.services.ec2.model.DeleteKeyPairRequest;
 import software.amazon.awssdk.services.ec2.model.DeleteSecurityGroupRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeImagesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeImagesResponse;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypesRequest;
-import software.amazon.awssdk.services.ec2.model.DescribeInstanceTypesResponse;
+
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
-import software.amazon.awssdk.services.ec2.model.DescribeKeyPairsResponse;
+
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse;
-import software.amazon.awssdk.services.ec2.model.DisassociateAddressRequest;
-import software.amazon.awssdk.services.ec2.model.DomainType;
+
 import software.amazon.awssdk.services.ec2.model.Filter;
 import software.amazon.awssdk.services.ec2.model.Instance;
-import software.amazon.awssdk.services.ec2.model.InstanceTypeInfo;
+
 import software.amazon.awssdk.services.ec2.model.IpPermission;
 import software.amazon.awssdk.services.ec2.model.IpRange;
-import software.amazon.awssdk.services.ec2.model.ReleaseAddressRequest;
 import software.amazon.awssdk.services.ec2.model.ResourceType;
 import software.amazon.awssdk.services.ec2.model.RunInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.RunInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.SecurityGroup;
-import software.amazon.awssdk.services.ec2.model.StartInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.StopInstancesRequest;
+
 import software.amazon.awssdk.services.ec2.model.Tag;
 import software.amazon.awssdk.services.ec2.model.TagSpecification;
 import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
 import software.amazon.awssdk.services.ec2.waiters.Ec2Waiter;
 import software.amazon.awssdk.services.ec2.model.Reservation;
-import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
-import software.amazon.awssdk.services.ssm.model.Parameter;
+
 import software.amazon.awssdk.services.ssm.model.SsmException;
-import software.amazon.awssdk.services.ssm.paginators.GetParametersByPathIterable;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -60,12 +49,9 @@ import org.slf4j.LoggerFactory;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Instance;
-import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMDeleteOutput;
-import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
+
 
 import io.temporal.activity.Activity;
-import io.temporal.spring.boot.WorkflowImpl;
-
 import java.util.Collection;
 
 
@@ -119,7 +105,7 @@ public class Ec2Service  {
 
     public List<Ec2Instance> getDemoInstanceIds(Ec2Client ec2)
     {
-        List<Ec2Instance> instancesList = new ArrayList<Ec2Instance>();
+        List<Ec2Instance> instancesList = new ArrayList<>();
 
         Filter myFilter = Filter.builder()
                                  .name("tag:"+ec2Configuration.getTemporalTagKey())
@@ -131,7 +117,7 @@ public class Ec2Service  {
                                                         .build();
 
         DescribeInstancesResponse response = ec2.describeInstances(instanceRequest);
-        if (response.hasReservations() == true)
+        if (response.hasReservations())
         {
             logger.debug("Believe we have some reservations - {}", response.reservations().size());
             List<Reservation> reservations = response.reservations();
@@ -152,7 +138,7 @@ public class Ec2Service  {
                         instancesList.add(new Ec2Instance(instance.instanceId(),instance.publicDnsName()));
                     }
                 }
-            logger.debug("The instances found are [{}]", instancesList.toString());
+            logger.debug("The instances found are [{}]", instancesList);
             }
        }
        else 
@@ -191,7 +177,7 @@ public class Ec2Service  {
     public String runInstance(Ec2Client ec2, String instanceType, String keyName, String groupName,
             String amiId) {
         try {
-            Collection myTags = new ArrayList<Tag>();
+            Collection<Tag> myTags = new ArrayList<>();
             myTags.add(Tag.builder()
                     .key(this.ec2Configuration.getTemporalTagKey())
                     .value(this.ec2Configuration.getTemporalTagValue())
@@ -202,7 +188,7 @@ public class Ec2Service  {
                     .resourceType(ResourceType.INSTANCE)
                     .build();
 
-            logger.debug("Tags: [{}]", myTagSpec.tags().toString());
+            logger.debug("Tags: [{}]", myTagSpec.tags());
 
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
                     .instanceType(instanceType)
@@ -227,7 +213,6 @@ public class Ec2Service  {
 
         } catch (SsmException e) {
             logger.error("SsmException occurred - errored trying to create the instance. [{}]", e.getMessage());
-            System.err.println(e.getMessage());
         }
         return "";
     }
@@ -235,7 +220,7 @@ public class Ec2Service  {
 
     public List<String> getSecurityGroupsByGroupName(Ec2Client ec2, String groupName)
     {
-        List<String> groupIds = new ArrayList<String>();
+        List<String> groupIds = new ArrayList<>();
         try {
 
             Filter groupNameFilter = Filter.builder()
@@ -274,9 +259,7 @@ public class Ec2Service  {
             logger.debug("Successfully deleted security group with Id {}", groupId);
 
         } catch (Ec2Exception e) {
-            logger.error("Failed to delete security group {}", e.awsErrorDetails().errorMessage());
-            System.err.println(e.awsErrorDetails().errorMessage());
-           
+            logger.error("Failed to delete security group {}", e.awsErrorDetails().errorMessage());           
         }
 
     } //End deleteSecurityGroup
