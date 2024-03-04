@@ -38,6 +38,10 @@
                     <input type="submit" value="Create VM" formaction="/ec2-createvm/" class="btn btn-primary" />
                 </form>
                 <br>
+                <form action="/ec2-queryvms", id="ec2queryvm">
+                    <input type="submit" value="Query VM" formaction="/ec2-queryvms/" class="btn btn-primary" />
+             </form>
+             <br>
                 <form action="/ec2-deletevm", id="ec2deletevm">
                        <input type="submit" value="Cleanup VM" formaction="/ec2-deletevm/" class="btn btn-secondary" />
                 </form>
@@ -52,6 +56,27 @@
     </div>
 </div>
 <script>
+    $("#ec2queryvm").submit(function( event ) {
+    event.preventDefault();
+
+    var $form = $( this );
+    var createvm = $form.find( "input[name='createvm']" ).val();
+    var url = $form.attr( "action" );
+    console.log("url is " + url);
+    console.log(createvm);
+    $.ajax({
+        'url': url,
+        'method':'POST',
+        'dataType': 'json',
+        'contentType': 'application/json',
+        'data':JSON.stringify({
+            "createvm": createvm
+        }),
+        success: function(response) {
+            $( "#result" ).empty().append( response );
+        }
+    });
+});
 $("#ec2createvm").submit(function( event ) {
     event.preventDefault();
 

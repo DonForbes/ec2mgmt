@@ -1,5 +1,7 @@
 package com.donaldforbes.temporal.ec2.ec2mgmt;
 
+import java.util.Collection;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,6 +53,17 @@ public class ec2MgmtController {
 
         return new ResponseEntity<>("\"Created VM - " + vmDetails.toString() + "\"", HttpStatus.OK);
     }
+ 
+    @PostMapping(value="/ec2-queryvms")
+    public ResponseEntity<String> ec2PostQueryVM(@RequestBody String body)
+    {
+        Ec2Input vmInput = new Ec2Input(ec2Configuration);
+        Ec2Service theEC2Service = new Ec2Service(ec2Configuration);
+        Collection<String> instanceIds = theEC2Service.getDemoInstanceIds(theEC2Service.getEc2());
+        System.out.println("There are [" + instanceIds.size() + "] instances found.");
+        return new ResponseEntity<>("\"Matching VMs - " + instanceIds.toString() + "\"", HttpStatus.OK);
+    } //End ec2 Post query VM
+
     @PostMapping(value="/ec2-deletevm")
     public ResponseEntity<String> ec2PostDelete(@RequestBody String body) {
         System.out.println("Deletiung the VM.");

@@ -37,9 +37,29 @@ public class CreateVMServiceImpl implements CreateVMService {
         logger.debug("Creating a security group based on values provided.");
         vmOutput.getSecurityGroups().add(activity.createSecurityGroup(vmConfig));
 
+        // ***************************************************************
+        // **          Change method signature to create a logic issue  **
+        // ***************************************************************        
+        this.createAProblem(false);
+
         logger.debug("Creating an instance.");
         vmOutput.getVmIdentifiers().add(activity.runInstance(vmConfig));
 
         return vmOutput;
+    }
+    private void createAProblem(boolean createIssue)
+    {
+        int x=5,y=0,z=0;
+        if (createIssue)
+        {
+            logger.error("createVM Workflow will fail.");
+            z=x/y;
+        }
+        else
+        {
+            logger.debug("createVM workflow OK.");
+            z=x*y;
+        }
+
     }
 }

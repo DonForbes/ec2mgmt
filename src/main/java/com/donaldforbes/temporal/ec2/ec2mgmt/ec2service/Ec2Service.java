@@ -162,7 +162,12 @@ public class Ec2Service  {
                 for (Instance instance : instances)
                 {
                     logger.debug("Found instance ID: {}", instance.instanceId());
-                    instanceIdList.add(instance.instanceId());
+                    if (instance.state().code() == 48) // Terminated.
+                        {
+                            logger.debug("Instance [{}] has been terminated, not returning.", instance.instanceId());
+                        }
+                    else
+                        instanceIdList.add(instance.instanceId() + " - " + instance.publicDnsName());
 
                 }
             logger.debug("The instances found are [{}]", instanceIdList.toString());
