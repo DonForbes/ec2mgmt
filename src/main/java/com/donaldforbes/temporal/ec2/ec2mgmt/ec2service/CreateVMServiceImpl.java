@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.slf4j.Logger;
+
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
@@ -14,6 +16,8 @@ import io.temporal.workflow.Workflow;
 
 @WorkflowImpl(taskQueues = "Ec2DemoTaskQueue")
 public class CreateVMServiceImpl implements CreateVMService {
+
+    public static final Logger logger = Workflow.getLogger(CreateVMServiceImpl.class);
 
     private Ec2Service ec2Service;
     private VMActivities activity =
@@ -27,16 +31,13 @@ public class CreateVMServiceImpl implements CreateVMService {
             ec2Service = new Ec2Service(vmConfig);
 
         Ec2VMOutput vmOutput = new Ec2VMOutput();
-        System.out.println("1. Create an RSA key pair and save the private key material as a .pem file.");
-
+        logger.debug("Create an RSA key pair and save the private key material as a .pem file.");
         vmOutput.getKeyPairNames().add(activity.createKeyPair(vmConfig));
 
-        System.out.println("Creating a security group based on values provided.");
-
+        logger.debug("Creating a security group based on values provided.");
         vmOutput.getSecurityGroups().add(activity.createSecurityGroup(vmConfig));
 
-        System.out.println("Creating an instance.");
-
+        logger.debug("Creating an instance.");
         vmOutput.getVmIdentifiers().add(activity.runInstance(vmConfig));
 
         return vmOutput;

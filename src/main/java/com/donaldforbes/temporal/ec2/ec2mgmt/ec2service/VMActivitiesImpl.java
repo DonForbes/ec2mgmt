@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
@@ -13,6 +15,7 @@ import io.temporal.spring.boot.ActivityImpl;
 @Component
 @ActivityImpl(taskQueues = "Ec2DemoTaskQueue")
 public class VMActivitiesImpl implements VMActivities {
+    private static final Logger logger = LoggerFactory.getLogger(VMActivitiesImpl.class);
 
     @Override
     public String createKeyPair(Ec2Input vmDetail) {
@@ -35,7 +38,7 @@ public class VMActivitiesImpl implements VMActivities {
 
     @Override
     public String runInstance(Ec2Input vmDetail) {
-        Ec2Service ec2Service = this.getEc2Service(vmDetail);
+       Ec2Service ec2Service = this.getEc2Service(vmDetail);
        return ec2Service.runInstance(ec2Service.getEc2(),
                  vmDetail.instanceType,
                  vmDetail.keyName,
@@ -48,11 +51,11 @@ public class VMActivitiesImpl implements VMActivities {
         Ec2Service ec2Service = this.getEc2Service(vmDetail);
 
         Collection<String> vmIdentifiers = new ArrayList<String>();
-        System.out.println("Deleting all VMs with Temporal Demo tags and associated resources.");
+       logger.debug("Deleting all VMs with Temporal Demo tags and associated resources.");
         
         List<String> instanceIds = ec2Service.getDemoInstanceIds(ec2Service.getEc2());
         for (String instanceId : instanceIds) {
-            System.out.println("Deleting instance " + instanceId);
+            logger.debug("Deleting instance ",instanceId);
             ec2Service.terminateEC2(ec2Service.getEc2(), instanceId);
             vmIdentifiers.add(instanceId);
         }

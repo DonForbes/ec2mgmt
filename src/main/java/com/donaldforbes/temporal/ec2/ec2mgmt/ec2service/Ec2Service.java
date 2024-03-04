@@ -54,6 +54,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMDeleteOutput;
@@ -69,6 +72,8 @@ public class Ec2Service  {
     private Ec2Client ec2;
     private SsmClient ssmClient;
     private Ec2Config ec2Configuration;
+    private static final Logger logger = LoggerFactory.getLogger(Ec2Service.class);
+
 
     public Ec2Client getEc2() {
         return this.ec2;
@@ -111,25 +116,25 @@ public class Ec2Service  {
                .build();
     }
 
-    public Ec2VMDeleteOutput deleteVM(Ec2Config vmConfig) {
-        Ec2VMDeleteOutput deleteVMOutput = new Ec2VMDeleteOutput();
-        System.out.println("Deleting all VMs with Temporal Demo tags and associated resources.");
-        List<String> instanceIds = this.getDemoInstanceIds(ec2);
-        for (String instanceId : instanceIds) {
-            System.out.println("Deleting instance " + instanceId);
-            this.terminateEC2(ec2, instanceId);
-        }
-        Collection<String> groupIds = this.getSecurityGroupsByGroupName(ec2, ec2Configuration.getGroupName());
+    // public Ec2VMDeleteOutput deleteVM(Ec2Config vmConfig) {
+    //     Ec2VMDeleteOutput deleteVMOutput = new Ec2VMDeleteOutput();
+    //     System.out.println("Deleting all VMs with Temporal Demo tags and associated resources.");
+    //     List<String> instanceIds = this.getDemoInstanceIds(ec2);
+    //     for (String instanceId : instanceIds) {
+    //         System.out.println("Deleting instance " + instanceId);
+    //         this.terminateEC2(ec2, instanceId);
+    //     }
+    //     Collection<String> groupIds = this.getSecurityGroupsByGroupName(ec2, ec2Configuration.getGroupName());
 
-        for (String groupID : groupIds)
-        {
-            this.deleteSecurityGroup(ec2, groupID);
-        }
+    //     for (String groupID : groupIds)
+    //     {
+    //         this.deleteSecurityGroup(ec2, groupID);
+    //     }
 
-        this.deleteKeys(ec2, ec2Configuration.getKeyName());
-        deleteVMOutput.setMessage("VM and associated objects deleted.");
-        return deleteVMOutput;
-    }
+    //     this.deleteKeys(ec2, ec2Configuration.getKeyName());
+    //     deleteVMOutput.setMessage("VM and associated objects deleted.");
+    //     return deleteVMOutput;
+    // }
 
     public List<String> getDemoInstanceIds(Ec2Client ec2)
     {
@@ -147,7 +152,7 @@ public class Ec2Service  {
         DescribeInstancesResponse response = ec2.describeInstances(instanceRequest);
         if (response.hasReservations() == true)
         {
-            System.out.println("Believe we have some reservations - " + response.reservations().size());
+            logger.debug("Believe we have some reservations - {}", response.reservations().size());
             List<Reservation> reservations = response.reservations();
             for (Reservation reservation : reservations)
             {
@@ -156,15 +161,15 @@ public class Ec2Service  {
         
                 for (Instance instance : instances)
                 {
-                    System.out.println("Found instance ID:" + instance.instanceId());
+                    logger.debug("Found instance ID: {}", instance.instanceId());
                     instanceIdList.add(instance.instanceId());
 
                 }
-            System.out.println("The instances found are" + instanceIdList.toString());
+            logger.debug("The instances found are [{}]", instanceIdList.toString());
             }
        }
        else 
-        System.out.println("No instances found matching filter.");
+        logger.debug("No instances found matching filter.");
 
         return instanceIdList;
     }
@@ -180,7 +185,7 @@ public class Ec2Service  {
                     .instanceIds(instanceId)
                     .build();
 
-            System.out.println("Use an Ec2Waiter to wait for the instance to terminate. This will take a few minutes.");
+            logger.debug("Using an Ec2Waiter to wait for the instance to terminate. This will take a few minutes.");
             ec2.terminateInstances(ti);
             DescribeInstancesRequest instanceRequest = DescribeInstancesRequest.builder()
                     .instanceIds(instanceId)
@@ -189,10 +194,10 @@ public class Ec2Service  {
             WaiterResponse<DescribeInstancesResponse> waiterResponse = ec2Waiter
                     .waitUntilInstanceTerminated(instanceRequest);
             waiterResponse.matched().response().ifPresent(System.out::println);
-            System.out.println(instanceId + " is terminated!");
+            logger.info("{} is terminated!", instanceId);
 
         } catch (Ec2Exception e) {
-            System.out.println("ERROR: " + e.awsErrorDetails().errorMessage());
+            logger.error("Exception occurred:- {}", e.awsErrorDetails().errorMessage());
         }
     }
 
@@ -210,7 +215,7 @@ public class Ec2Service  {
                     .resourceType(ResourceType.INSTANCE)
                     .build();
 
-            System.out.println(myTagSpec.tags().toString());
+            logger.debug("Tags: [{}]", myTagSpec.tags().toString());
 
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
                     .instanceType(instanceType)
@@ -224,11 +229,17 @@ public class Ec2Service  {
 
             RunInstancesResponse response = ec2.runInstances(runRequest);
             String instanceId = response.instances().get(0).instanceId();
-            System.out.println("Successfully started EC2 instance " + instanceId + " based on AMI " + amiId);
-            return instanceId;
+            logger.debug("Successfully started EC2 instance [{}], based on AMI [{}]", instanceId,  amiId);
+            String publicIPAddresses = new String("Unknown");
+            if (response.hasInstances())
+                {
+                    publicIPAddresses = response.instances().get(0).publicIpAddress();
+                }
+
+            return instanceId + "[" + publicIPAddresses + "]";
 
         } catch (SsmException e) {
-            System.out.println("SsmException occurred - errored trying to create the instance.");
+            logger.error("SsmException occurred - errored trying to create the instance. [{}]", e.getMessage());
             System.err.println(e.getMessage());
         }
         return "";
@@ -252,13 +263,14 @@ public class Ec2Service  {
             DescribeSecurityGroupsResponse response = ec2.describeSecurityGroups(request);
             for (SecurityGroup group : response.securityGroups()) {
                 groupIds.add(group.groupId());
-                System.out
-                        .println("Found Security Group with Id " + group.groupId() + " and group VPC " + group.vpcId());
+                logger.debug("Found Security Group with Id [{}] and group VPC [{}]", 
+                                                    group.groupId(),  
+                                                    group.vpcId());
             }
         }
 
         catch (Ec2Exception e) {
-            System.out.println("ERROR: Unable to find security groups - " + e.awsErrorDetails().errorMessage());
+            logger.error("Unable to find security groups - {}", e.awsErrorDetails().errorMessage());
         }
 
         return groupIds;
@@ -272,10 +284,10 @@ public class Ec2Service  {
                     .build();
 
             ec2.deleteSecurityGroup(request);
-            System.out.println("Successfully deleted security group with Id " + groupId);
+            logger.debug("Successfully deleted security group with Id {}", groupId);
 
         } catch (Ec2Exception e) {
-            System.out.println("ERROR: Failed to delete security group" + e.awsErrorDetails().errorMessage());
+            logger.error("Failed to delete security group {}", e.awsErrorDetails().errorMessage());
             System.err.println(e.awsErrorDetails().errorMessage());
            
         }
@@ -316,15 +328,18 @@ public class Ec2Service  {
                     .build();
 
             ec2.authorizeSecurityGroupIngress(authRequest);
-            System.out.println("Successfully added ingress policy to security group " + groupName);
+            logger.debug("Successfully added ingress policy to security group {}", groupName);
             return resp.groupId();
 
         } catch (Ec2Exception e) {
-            System.out.println("Exception occurred creating the security group -" + e.getMessage());
+            logger.error("Exception occurred creating the security group - {}", e.getMessage());
             System.err.println(e.awsErrorDetails().errorMessage());
-            System.out.println("The error code returned was :" + e.awsErrorDetails().errorCode());
+            
             if (e.awsErrorDetails().errorCode().equalsIgnoreCase("InvalidGroup.Duplicate"))
-                return groupName;
+                {
+                    logger.debug("The error code returned was : {}.  As this is a duplicate assuming success.", e.awsErrorDetails().errorCode());
+                    return groupName;
+                }
         }
         return "";
     }
@@ -340,13 +355,13 @@ public class Ec2Service  {
             BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
             writer.write(content);
             writer.close();
-            System.out.println("Successfully created key pair named " + keyName);
+            logger.debug("Successfully created key pair named {}", keyName);
 
             return keyName + " - " + fileName;
 
         } catch (Ec2Exception | IOException e) {
             System.err.println(e.getMessage());
-            System.out.println("ERROR: Failed to create keypair called - " + keyName);
+            logger.error("Failed to create keypair called - {}", keyName);
             if (e.getMessage().startsWith("The keypair already exists"))
                 return keyName + " - Already Exists. Check you have the secret key.";
             else
@@ -361,10 +376,10 @@ public class Ec2Service  {
                     .build();
 
             ec2.deleteKeyPair(request);
-            System.out.println("Successfully deleted key pair named " + keyPair);
+            logger.debug("Successfully deleted key pair named [{}]", keyPair);
 
         } catch (Ec2Exception e) {
-            System.out.println("ERROR: Unable to delete key pair - " + e.awsErrorDetails().errorMessage());
+            logger.error("Unable to delete key pair - {}", e.awsErrorDetails().errorMessage());
             
     }
 }
