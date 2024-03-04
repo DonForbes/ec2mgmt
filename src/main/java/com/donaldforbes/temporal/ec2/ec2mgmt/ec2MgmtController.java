@@ -2,6 +2,8 @@ package com.donaldforbes.temporal.ec2.ec2mgmt;
 
 import java.util.Collection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,8 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.CreateVMService;
 import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.DeleteVMService;
 import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.Ec2Service;
+import com.donaldforbes.temporal.ec2.ec2mgmt.ec2service.VMActivitiesImpl;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Instance;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
 
 import io.temporal.client.WorkflowClient;
@@ -27,7 +31,9 @@ public class ec2MgmtController {
     @Autowired 
     private Ec2Config ec2Configuration;
     @Autowired WorkflowClient client;
-    
+    private static final Logger logger = LoggerFactory.getLogger(ec2MgmtController.class);
+
+
     @GetMapping("hello")
     public String hello(Model model){
         model.addAttribute("sample", "Example Hello");
@@ -36,18 +42,15 @@ public class ec2MgmtController {
 
     @PostMapping(value="/ec2-createvm")
     public ResponseEntity<String> ec2PostCreate(@RequestBody String body) {
-        System.out.println("Creating the VM.");
-        System.out.println(body);
+        logger.debug("Creating the VM.");
 
-        CreateVMService workflow =
-        client.newWorkflowStub(
-            CreateVMService.class,
-            WorkflowOptions.newBuilder()
-                .setTaskQueue("Ec2DemoTaskQueue")
-                .setWorkflowId("CreateVMWorkflow")
-                .build());
+        CreateVMService workflow = client.newWorkflowStub(
+                    CreateVMService.class,
+                            WorkflowOptions.newBuilder()
+                                        .setTaskQueue("Ec2DemoTaskQueue")
+                                        .setWorkflowId("CreateVMWorkflow")
+                                        .build());
                 
-        System.out.println("**** config value -" + ec2Configuration.getGroupName());
         Ec2Input vmInput = new Ec2Input(ec2Configuration);
         Ec2VMOutput vmDetails = workflow.createVM(vmInput);
 
@@ -59,15 +62,14 @@ public class ec2MgmtController {
     {
         Ec2Input vmInput = new Ec2Input(ec2Configuration);
         Ec2Service theEC2Service = new Ec2Service(ec2Configuration);
-        Collection<String> instanceIds = theEC2Service.getDemoInstanceIds(theEC2Service.getEc2());
-        System.out.println("There are [" + instanceIds.size() + "] instances found.");
-        return new ResponseEntity<>("\"Matching VMs - " + instanceIds.toString() + "\"", HttpStatus.OK);
+        Collection<Ec2Instance> instances = theEC2Service.getDemoInstanceIds(theEC2Service.getEc2());
+        logger.debug("There are [{}] instances found", instances.size());
+        return new ResponseEntity<>("\"Matching VMs - " + instances.toString() + "\"", HttpStatus.OK);
     } //End ec2 Post query VM
 
     @PostMapping(value="/ec2-deletevm")
     public ResponseEntity<String> ec2PostDelete(@RequestBody String body) {
-        System.out.println("Deletiung the VM.");
-        System.out.println(body);
+        logger.debug("Deletiung the VM.");
 
         DeleteVMService workflow =
             client.newWorkflowStub(

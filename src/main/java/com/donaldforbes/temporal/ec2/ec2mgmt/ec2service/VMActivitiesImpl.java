@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Instance;
 
 import io.temporal.spring.boot.ActivityImpl;
 
@@ -53,11 +54,11 @@ public class VMActivitiesImpl implements VMActivities {
         Collection<String> vmIdentifiers = new ArrayList<String>();
        logger.debug("Deleting all VMs with Temporal Demo tags and associated resources.");
         
-        List<String> instanceIds = ec2Service.getDemoInstanceIds(ec2Service.getEc2());
-        for (String instanceId : instanceIds) {
-            logger.debug("Deleting instance ",instanceId);
-            ec2Service.terminateEC2(ec2Service.getEc2(), instanceId);
-            vmIdentifiers.add(instanceId);
+        List<Ec2Instance> instances = ec2Service.getDemoInstanceIds(ec2Service.getEc2());
+        for (Ec2Instance instance : instances) {
+            logger.debug("Deleting instance ",instance.getInstanceId());
+            ec2Service.terminateEC2(ec2Service.getEc2(), instance.getInstanceId());
+            vmIdentifiers.add(instance.toString());
         }
 
         return vmIdentifiers;

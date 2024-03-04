@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
+import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Instance;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMDeleteOutput;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
 
@@ -116,29 +117,9 @@ public class Ec2Service  {
                .build();
     }
 
-    // public Ec2VMDeleteOutput deleteVM(Ec2Config vmConfig) {
-    //     Ec2VMDeleteOutput deleteVMOutput = new Ec2VMDeleteOutput();
-    //     System.out.println("Deleting all VMs with Temporal Demo tags and associated resources.");
-    //     List<String> instanceIds = this.getDemoInstanceIds(ec2);
-    //     for (String instanceId : instanceIds) {
-    //         System.out.println("Deleting instance " + instanceId);
-    //         this.terminateEC2(ec2, instanceId);
-    //     }
-    //     Collection<String> groupIds = this.getSecurityGroupsByGroupName(ec2, ec2Configuration.getGroupName());
-
-    //     for (String groupID : groupIds)
-    //     {
-    //         this.deleteSecurityGroup(ec2, groupID);
-    //     }
-
-    //     this.deleteKeys(ec2, ec2Configuration.getKeyName());
-    //     deleteVMOutput.setMessage("VM and associated objects deleted.");
-    //     return deleteVMOutput;
-    // }
-
-    public List<String> getDemoInstanceIds(Ec2Client ec2)
+    public List<Ec2Instance> getDemoInstanceIds(Ec2Client ec2)
     {
-        List<String> instanceIdList = new ArrayList<String>();
+        List<Ec2Instance> instancesList = new ArrayList<Ec2Instance>();
 
         Filter myFilter = Filter.builder()
                                  .name("tag:"+ec2Configuration.getTemporalTagKey())
@@ -167,16 +148,17 @@ public class Ec2Service  {
                             logger.debug("Instance [{}] has been terminated, not returning.", instance.instanceId());
                         }
                     else
-                        instanceIdList.add(instance.instanceId() + " - " + instance.publicDnsName());
-
+                    {
+                        instancesList.add(new Ec2Instance(instance.instanceId(),instance.publicDnsName()));
+                    }
                 }
-            logger.debug("The instances found are [{}]", instanceIdList.toString());
+            logger.debug("The instances found are [{}]", instancesList.toString());
             }
        }
        else 
         logger.debug("No instances found matching filter.");
 
-        return instanceIdList;
+        return instancesList;
     }
 
     public void terminateEC2(Ec2Client ec2, String instanceId) {
@@ -365,7 +347,6 @@ public class Ec2Service  {
             return keyName + " - " + fileName;
 
         } catch (Ec2Exception | IOException e) {
-            System.err.println(e.getMessage());
             logger.error("Failed to create keypair called - {}", keyName);
             if (e.getMessage().startsWith("The keypair already exists"))
                 return keyName + " - Already Exists. Check you have the secret key.";
