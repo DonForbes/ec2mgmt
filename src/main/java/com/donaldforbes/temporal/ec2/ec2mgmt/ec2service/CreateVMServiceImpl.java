@@ -1,12 +1,10 @@
 package com.donaldforbes.temporal.ec2.ec2mgmt.ec2service;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
 
 import org.slf4j.Logger;
 
-import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Config;
+
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2Input;
 import com.donaldforbes.temporal.ec2.ec2mgmt.model.Ec2VMOutput;
 
@@ -49,7 +47,9 @@ public class CreateVMServiceImpl implements CreateVMService {
     }
     private void createAProblem(boolean createIssue)
     {
-        int x=5,y=0,z=0;
+        int x=5;
+        int y=0;
+        int z=0;
         if (createIssue)
         {
             logger.error("createVM Workflow will fail.");
@@ -60,6 +60,6 @@ public class CreateVMServiceImpl implements CreateVMService {
             logger.debug("createVM workflow OK.");
             z=x*y;
         }
-
+        logger.debug("Calculated Value is [{}]",z);
     }
 }
