@@ -19,7 +19,7 @@ public class DeleteVMServiceImpl implements DeleteVMService {
     private VMActivities activity =
       Workflow.newActivityStub(
           VMActivities.class,
-          ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(4)).build());
+          ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(30)).build());
 
     @Override
     public Ec2VMOutput deleteAll(Ec2Input vmConfig) {

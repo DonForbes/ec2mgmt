@@ -23,7 +23,7 @@ public class CreateVMServiceImpl implements CreateVMService {
     private VMActivities activity =
       Workflow.newActivityStub(
           VMActivities.class,
-          ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(4)).build());
+          ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(10)).build());
 
     @Override
     public Ec2VMOutput createVM(Ec2Input vmConfig) {
