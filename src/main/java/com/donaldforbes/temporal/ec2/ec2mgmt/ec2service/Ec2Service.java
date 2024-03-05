@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest;
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairResponse;
 import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.waiters.WaiterResponse;
 
 import software.amazon.awssdk.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
@@ -57,7 +58,6 @@ import java.util.Collection;
 
 public class Ec2Service  { 
     private Ec2Client ec2;
-    private SsmClient ssmClient;
     private Ec2Config ec2Configuration;
     private static final Logger logger = LoggerFactory.getLogger(Ec2Service.class);
 
@@ -68,13 +68,10 @@ public class Ec2Service  {
     public Ec2Service(Ec2Config pEc2Configuration) {
         ec2Configuration = pEc2Configuration;
         Region region = Region.of(ec2Configuration.getRegion());
-
+     
         ec2 = Ec2Client.builder()
                 .region(region)
-                .build();
-
-        ssmClient = SsmClient.builder()
-                .region(region)
+                .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
 
@@ -96,10 +93,7 @@ public class Ec2Service  {
 
        ec2 = Ec2Client.builder()
                .region(region)
-               .build();
-
-       ssmClient = SsmClient.builder()
-               .region(region)
+               .credentialsProvider(DefaultCredentialsProvider.create())
                .build();
     }
 
@@ -203,7 +197,7 @@ public class Ec2Service  {
             RunInstancesResponse response = ec2.runInstances(runRequest);
             String instanceId = response.instances().get(0).instanceId();
             logger.debug("Successfully started EC2 instance [{}], based on AMI [{}]", instanceId,  amiId);
-            String publicIPAddresses = new String("Unknown");
+            String publicIPAddresses = "Unknown";
             if (response.hasInstances())
                 {
                     publicIPAddresses = response.instances().get(0).publicIpAddress();
@@ -303,7 +297,7 @@ public class Ec2Service  {
 
         } catch (Ec2Exception e) {
             logger.error("Exception occurred creating the security group - {}", e.getMessage());
-            System.err.println(e.awsErrorDetails().errorMessage());
+            logger.error("EC2 specific error - {}", e.awsErrorDetails().errorMessage());
             
             if (e.awsErrorDetails().errorCode().equalsIgnoreCase("InvalidGroup.Duplicate"))
                 {

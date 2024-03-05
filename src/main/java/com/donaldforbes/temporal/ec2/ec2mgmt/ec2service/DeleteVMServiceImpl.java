@@ -14,7 +14,7 @@ import io.temporal.workflow.Workflow;
 @WorkflowImpl(taskQueues = "Ec2DemoTaskQueue")
 public class DeleteVMServiceImpl implements DeleteVMService {
 
-    public static final Logger logger = Workflow.getLogger(CreateVMServiceImpl.class);
+    public static final Logger logger = Workflow.getLogger(DeleteVMServiceImpl.class);
     private Ec2Service ec2Service;
     private VMActivities activity =
       Workflow.newActivityStub(
